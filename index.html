@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Tic Tac Toe | Multiplayer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        /* CSS Variables for theming */
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #7209b7;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+            --border-radius: 12px;
+            --box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 90vh;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo i {
+            font-size: 2.5rem;
+        }
+
+        .logo h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .player-info {
+            background-color: rgba(255, 255, 255, 0.15);
+            padding: 10px 15px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .player-id {
+            font-family: monospace;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .copy-id-btn {
+            background-color: rgba(255, 255, 255, 0.25);
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            color: white;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .copy-id-btn:hover {
+            background-color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Main Content Area */
+        .main-content {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background-color: var(--light);
+            padding: 25px;
+            border-right: 1px solid var(--light-gray);
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            color: var(--primary);
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .section-title i {
+            font-size: 1.1rem;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--light-gray);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-warning {
+            background-color: var(--warning);
+            color: white;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+
+        /* Status Indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            padding: 4px 10px;
+            border-radius: 50px;
+        }
+
+        .status-online {
+            background-color: rgba(76, 201, 240, 0.15);
+            color: #0d6efd;
+        }
+
+        .status-offline {
+            background-color: rgba(108, 117, 125, 0.15);
+            color: var(--gray);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-online .status-dot {
+            background-color: #0d6efd;
+            animation: pulse 2s infinite;
+        }
+
+        .status-offline .status-dot {
+            background-color: var(--gray);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Lists */
+        .list {
+            list-style: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .list-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--light-gray);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item-content {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .list-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Game Area */
+        .game-area {
+            flex: 1;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+        }
+
+        /* Screens */
+        .screen {
+            width: 100%;
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        /* Home Screen */
+        .home-screen {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .home-screen h2 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        .home-screen p {
+            color: var(--gray);
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .stats-cards {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--box-shadow);
+            min-width: 150px;
+        }
+
+        .stat-card i {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        /* Game Screen */
+        .game-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .player-turn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background-color: var(--light);
+            border-radius: 50px;
+            font-weight: 600;
+        }
+
+        .turn-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        .turn-x {
+            background-color: var(--primary);
+        }
+
+        .turn-o {
+            background-color: var(--secondary);
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background-color: white;
+            border: 2px solid var(--light-gray);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .cell:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+            border-color: var(--primary);
+        }
+
+        .cell.x {
+            color: var(--primary);
+        }
+
+        .cell.o {
+            color: var(--secondary);
+        }
+
+        .cell.win {
+            background-color: rgba(76, 201, 240, 0.2);
+        }
+
+        .game-status {
+            text-align: center;
+            padding: 20px;
+            background-color: var(--light);
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .game-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        /* Notifications */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 350px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .notification {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s ease;
+            border-left: 4px solid var(--primary);
+        }
+
+        .notification.info {
+            border-left-color: var(--primary);
+        }
+
+        .notification.success {
+            border-left-color: var(--success);
+        }
+
+        .notification.warning {
+            border-left-color: var(--warning);
+        }
+
+        .notification.danger {
+            border-left-color: var(--danger);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .notification-message {
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            color: var(--gray);
+            cursor: pointer;
+            font-size: 1.1rem;
+            margin-left: 10px;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--light-gray);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--light-gray);
+                max-height: 300px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .stats-cards {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .notification-container {
+                width: calc(100% - 40px);
+            }
+            
+            .cell {
+                font-size: 3rem;
+            }
+        }
+
+        /* Animation for game moves */
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            70% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .cell.x, .cell.o {
+            animation: popIn 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <i class="fas fa-gamepad"></i>
+                <h1>Real-Time Tic Tac Toe</h1>
+            </div>
+            <div class="player-info">
+                <span>Your ID:</span>
+                <span class="player-id" id="player-id">Generating...</span>
+                <button class="copy-id-btn" id="copy-id-btn" title="Copy ID">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- Add Friend Section -->
+                <div class="sidebar-section">
+                    <div class="section-title">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Add Friend</span>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="friend-id-input" placeholder="Enter Player ID">
+                    </div>
+                    <button class="btn btn-primary btn-block" id="send-friend-request-btn">
+                        <i class="fas fa-paper-plane"></i> Send Friend Request
+                    </button>
+                </div>
+
+                <!-- Friend Requests Section -->
+                <div class="sidebar-section">
+                    <div class="section-title">
+                        <i class="fas fa-bell"></i>
+                        <span>Friend Requests</span>
+                        <span class="badge" id="friend-request-count">0</span>
+                    </div>
+                    <ul class="list" id="friend-requests-list">
+                        <!-- Friend requests will appear here -->
+                    </ul>
+                </div>
+
+                <!-- Friends List Section -->
+                <div class="sidebar-section">
+                    <div class="section-title">
+                        <i class="fas fa-users"></i>
+                        <span>Friends</span>
+                        <span class="badge" id="friends-count">0</span>
+                    </div>
+                    <ul class="list" id="friends-list">
+                        <!-- Friends will appear here -->
+                    </ul>
+                </div>
+
+                <!-- Duel Requests Section -->
+                <div class="sidebar-section">
+                    <div class="section-title">
+                        <i class="fas fa-fist-raised"></i>
+                        <span>Duel Requests</span>
+                        <span class="badge" id="duel-request-count">0</span>
+                    </div>
+                    <ul class="list" id="duel-requests-list">
+                        <!-- Duel requests will appear here -->
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- Game Area -->
+            <main class="game-area">
+                <!-- Home Screen -->
+                <div class="screen home-screen active" id="home-screen">
+                    <h2>Welcome to Real-Time Tic Tac Toe</h2>
+                    <p>Challenge your friends to a real-time duel or wait for incoming challenges.</p>
+                    
+                    <div class="stats-cards">
+                        <div class="stat-card">
+                            <i class="fas fa-user-friends"></i>
+                            <h3 id="online-count">0</h3>
+                            <p>Online Players</p>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-trophy"></i>
+                            <h3 id="games-played">0</h3>
+                            <p>Games Played</p>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-chart-line"></i>
+                            <h3 id="wins-count">0</h3>
+                            <p>Wins</p>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="find-random-game-btn">
+                            <i class="fas fa-random"></i> Find Random Game
+                        </button>
+                        <button class="btn btn-success" id="view-friends-btn">
+                            <i class="fas fa-users"></i> View Friends
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Game Screen -->
+                <div class="screen game-screen" id="game-screen">
+                    <div class="game-container">
+                        <div class="game-header">
+                            <div class="player-turn">
+                                <div class="turn-indicator turn-x"></div>
+                                <span id="turn-text">Your Turn (X)</span>
+                            </div>
+                            <button class="btn btn-danger" id="leave-game-btn">
+                                <i class="fas fa-sign-out-alt"></i> Leave Game
+                            </button>
+                        </div>
+                        
+                        <div class="game-board" id="game-board">
+                            <!-- Game cells will be generated here -->
+                        </div>
+                        
+                        <div class="game-status" id="game-status">
+                            Game in progress...
+                        </div>
+                        
+                        <div class="game-actions">
+                            <button class="btn btn-primary" id="rematch-btn" style="display: none;">
+                                <i class="fas fa-redo"></i> Rematch
+                            </button>
+                            <button class="btn btn-warning" id="home-btn">
+                                <i class="fas fa-home"></i> Return Home
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Notifications Container -->
+    <div class="notification-container" id="notification-container"></div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            // IMPORTANT: Replace with your own Firebase project configuration
+            apiKey: "AIzaSyC4QkS4_7B2_8pVd6Qj9t8v8pJd5w4J8w4",
+            authDomain: "tic-tac-toe-multiplayer.firebaseapp.com",
+            databaseURL: "https://tic-tac-toe-multiplayer-default-rtdb.firebaseio.com",
+            projectId: "tic-tac-toe-multiplayer",
+            storageBucket: "tic-tac-toe-multiplayer.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef1234567890"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Game State
+        let playerId = null;
+        let currentGameId = null;
+        let currentPlayerSymbol = null;
+        let isMyTurn = false;
+        let gameStatus = "waiting";
+        let playerStats = { gamesPlayed: 0, wins: 0 };
+
+        // DOM Elements
+        const elements = {
+            playerId: document.getElementById('player-id'),
+            copyIdBtn: document.getElementById('copy-id-btn'),
+            friendIdInput: document.getElementById('friend-id-input'),
+            sendFriendRequestBtn: document.getElementById('send-friend-request-btn'),
+            friendRequestsList: document.getElementById('friend-requests-list'),
+            friendRequestCount: document.getElementById('friend-request-count'),
+            friendsList: document.getElementById('friends-list'),
+            friendsCount: document.getElementById('friends-count'),
+            duelRequestsList: document.getElementById('duel-requests-list'),
+            duelRequestCount: document.getElementById('duel-request-count'),
+            homeScreen: document.getElementById('home-screen'),
+            gameScreen: document.getElementById('game-screen'),
+            gameBoard: document.getElementById('game-board'),
+            turnText: document.getElementById('turn-text'),
+            gameStatus: document.getElementById('game-status'),
+            leaveGameBtn: document.getElementById('leave-game-btn'),
+            rematchBtn: document.getElementById('rematch-btn'),
+            homeBtn: document.getElementById('home-btn'),
+            findRandomGameBtn: document.getElementById('find-random-game-btn'),
+            viewFriendsBtn: document.getElementById('view-friends-btn'),
+            onlineCount: document.getElementById('online-count'),
+            gamesPlayed: document.getElementById('games-played'),
+            winsCount: document.getElementById('wins-count'),
+            notificationContainer: document.getElementById('notification-container')
+        };
+
+        // Initialize player ID
+        function initializePlayerId() {
+            // Check if player ID exists in localStorage
+            playerId = localStorage.getItem('ticTacToePlayerId');
+            
+            // If not, generate a new one
+            if (!playerId) {
+                playerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('ticTacToePlayerId', playerId);
+            }
+            
+            // Update UI
+            elements.playerId.textContent = playerId;
+            
+            // Set up online status
+            setOnlineStatus(true);
+            
+            // Load player stats
+            loadPlayerStats();
+            
+            // Set up real-time listeners
+            setupRealtimeListeners();
+            
+            // Show welcome notification
+            showNotification('Welcome!', 'Your player ID has been generated. Share it with friends to play!', 'success');
+        }
+
+        // Set online status
+        function setOnlineStatus(isOnline) {
+            const playerRef = database.ref('players/' + playerId);
+            
+            if (isOnline) {
+                playerRef.set({
+                    online: true,
+                    lastSeen: Date.now()
+                });
+                
+                // Set up disconnect handler
+                playerRef.onDisconnect().update({
+                    online: false,
+                    lastSeen: Date.now()
+                });
+            } else {
+                playerRef.update({
+                    online: false,
+                    lastSeen: Date.now()
+                });
+            }
+        }
+
+        // Load player stats
+        function loadPlayerStats() {
+            const statsRef = database.ref('playerStats/' + playerId);
+            
+            statsRef.once('value').then(snapshot => {
+                if (snapshot.exists()) {
+                    playerStats = snapshot.val();
+                }
+                
+                // Update UI
+                elements.gamesPlayed.textContent = playerStats.gamesPlayed || 0;
+                elements.winsCount.textContent = playerStats.wins || 0;
+            });
+        }
+
+        // Update player stats
+        function updatePlayerStats(gameWon = false) {
+            playerStats.gamesPlayed = (playerStats.gamesPlayed || 0) + 1;
+            
+            if (gameWon) {
+                playerStats.wins = (playerStats.wins || 0) + 1;
+            }
+            
+            // Update Firebase
+            database.ref('playerStats/' + playerId).set(playerStats);
+            
+            // Update UI
+            elements.gamesPlayed.textContent = playerStats.gamesPlayed;
+            elements.winsCount.textContent = playerStats.wins;
+        }
+
+        // Set up real-time listeners
+        function setupRealtimeListeners() {
+            // Listen for online players count
+            database.ref('players').on('value', snapshot => {
+                if (snapshot.exists()) {
+                    const players = snapshot.val();
+                    const onlineCount = Object.values(players).filter(p => p.online).length;
+                    elements.onlineCount.textContent = onlineCount;
+                }
+            });
+            
+            // Listen for friend requests
+            database.ref('friendRequests/' + playerId).on('value', snapshot => {
+                updateFriendRequests(snapshot);
+            });
+            
+            // Listen for friends
+            database.ref('friends/' + playerId).on('value', snapshot => {
+                updateFriendsList(snapshot);
+            });
+            
+            // Listen for duel requests
+            database.ref('duelRequests/' + playerId).on('value', snapshot => {
+                updateDuelRequests(snapshot);
+            });
+            
+            // Listen for incoming games
+            database.ref('games').orderByChild('playerO').equalTo(playerId).on('value', snapshot => {
+                checkForGameInvitations(snapshot);
+            });
+            
+            database.ref('games').orderByChild('playerX').equalTo(playerId).on('value', snapshot => {
+                checkForGameInvitations(snapshot);
+            });
+        }
+
+        // Update friend requests list
+        function updateFriendRequests(snapshot) {
+            elements.friendRequestsList.innerHTML = '';
+            let requestCount = 0;
+            
+            if (snapshot.exists()) {
+                const requests = snapshot.val();
+                
+                Object.keys(requests).forEach(requestId => {
+                    const request = requests[requestId];
+                    
+                    if (request.status === 'pending') {
+                        requestCount++;
+                        
+                        const listItem = document.createElement('li');
+                        listItem.className = 'list-item';
+                        listItem.innerHTML = `
+                            <div class="list-item-content">
+                                <strong>${request.from}</strong>
+                                <small>${new Date(request.timestamp).toLocaleTimeString()}</small>
+                            </div>
+                            <div class="list-item-actions">
+                                <button class="btn btn-success btn-small accept-friend-btn" data-from="${request.from}">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn btn-danger btn-small reject-friend-btn" data-from="${request.from}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `;
+                        
+                        elements.friendRequestsList.appendChild(listItem);
+                    }
+                });
+            }
+            
+            elements.friendRequestCount.textContent = requestCount;
+            
+            // Add event listeners to buttons
+            document.querySelectorAll('.accept-friend-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const fromPlayerId = btn.getAttribute('data-from');
+                    acceptFriendRequest(fromPlayerId);
+                });
+            });
+            
+            document.querySelectorAll('.reject-friend-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const fromPlayerId = btn.getAttribute('data-from');
+                    rejectFriendRequest(fromPlayerId);
+                });
+            });
+        }
+
+        // Update friends list
+        function updateFriendsList(snapshot) {
+            elements.friendsList.innerHTML = '';
+            let friendsCount = 0;
+            
+            if (snapshot.exists()) {
+                const friends = snapshot.val();
+                
+                // Get online status for each friend
+                database.ref('players').once('value').then(playersSnapshot => {
+                    const players = playersSnapshot.val() || {};
+                    
+                    Object.keys(friends).forEach(friendId => {
+                        friendsCount++;
+                        
+                        const friend = friends[friendId];
+                        const isOnline = players[friendId] && players[friendId].online;
+                        
+                        const listItem = document.createElement('li');
+                        listItem.className = 'list-item';
+                        listItem.innerHTML = `
+                            <div class="list-item-content">
+                                <strong>${friendId}</strong>
+                                <span class="status-indicator ${isOnline ? 'status-online' : 'status-offline'}">
+                                    <span class="status-dot"></span>
+                                    ${isOnline ? 'Online' : 'Offline'}
+                                </span>
+                            </div>
+                            <div class="list-item-actions">
+                                <button class="btn btn-warning btn-small challenge-friend-btn" data-friend="${friendId}" ${!isOnline ? 'disabled' : ''}>
+                                    <i class="fas fa-fist-raised"></i> Challenge
+                                </button>
+                            </div>
+                        `;
+                        
+                        elements.friendsList.appendChild(listItem);
+                    });
+                    
+                    elements.friendsCount.textContent = friendsCount;
+                    
+                    // Add event listeners to challenge buttons
+                    document.querySelectorAll('.challenge-friend-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const friendId = btn.getAttribute('data-friend');
+                            sendDuelRequest(friendId);
+                        });
+                    });
+                });
+            } else {
+                elements.friendsCount.textContent = 0;
+            }
+        }
+
+        // Update duel requests list
+        function updateDuelRequests(snapshot) {
+            elements.duelRequestsList.innerHTML = '';
+            let requestCount = 0;
+            
+            if (snapshot.exists()) {
+                const requests = snapshot.val();
+                
+                Object.keys(requests).forEach(requestId => {
+                    const request = requests[requestId];
+                    
+                    if (request.status === 'pending') {
+                        requestCount++;
+                        
+                        const listItem = document.createElement('li');
+                        listItem.className = 'list-item';
+                        listItem.innerHTML = `
+                            <div class="list-item-content">
+                                <strong>${request.from}</strong>
+                                <small>${new Date(request.timestamp).toLocaleTimeString()}</small>
+                            </div>
+                            <div class="list-item-actions">
+                                <button class="btn btn-success btn-small accept-duel-btn" data-from="${request.from}" data-id="${requestId}">
+                                    <i class="fas fa-check"></i> Accept
+                                </button>
+                                <button class="btn btn-danger btn-small reject-duel-btn" data-from="${request.from}" data-id="${requestId}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `;
+                        
+                        elements.duelRequestsList.appendChild(listItem);
+                    }
+                });
+            }
+            
+            elements.duelRequestCount.textContent = requestCount;
+            
+            // Add event listeners to buttons
+            document.querySelectorAll('.accept-duel-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const fromPlayerId = btn.getAttribute('data-from');
+                    const requestId = btn.getAttribute('data-id');
+                    acceptDuelRequest(requestId, fromPlayerId);
+                });
+            });
+            
+            document.querySelectorAll('.reject-duel-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const requestId = btn.getAttribute('data-id');
+                    rejectDuelRequest(requestId);
+                });
+            });
+        }
+
+        // Check for game invitations
+        function checkForGameInvitations(snapshot) {
+            if (snapshot.exists()) {
+                const games = snapshot.val();
+                
+                Object.keys(games).forEach(gameId => {
+                    const game = games[gameId];
+                    
+                    // Check if this is a game we're invited to and haven't joined yet
+                    if (game.status === 'waiting' && 
+                        ((game.playerO === playerId && !game.playerOJoined) || 
+                         (game.playerX === playerId && !game.playerXJoined))) {
+                        
+                        // Join the game
+                        joinGame(gameId, game);
+                    }
+                });
+            }
+        }
+
+        // Send friend request
+        function sendFriendRequest() {
+            const friendId = elements.friendIdInput.value.trim();
+            
+            if (!friendId) {
+                showNotification('Error', 'Please enter a player ID', 'danger');
+                return;
+            }
+            
+            if (friendId === playerId) {
+                showNotification('Error', 'You cannot add yourself as a friend', 'danger');
+                return;
+            }
+            
+            // Check if friend exists
+            database.ref('players/' + friendId).once('value').then(snapshot => {
+                if (!snapshot.exists()) {
+                    showNotification('Error', 'Player not found', 'danger');
+                    return;
+                }
+                
+                // Check if already friends
+                database.ref('friends/' + playerId + '/' + friendId).once('value').then(friendSnapshot => {
+                    if (friendSnapshot.exists()) {
+                        showNotification('Info', 'You are already friends with this player', 'warning');
+                        return;
+                    }
+                    
+                    // Check if request already sent
+                    database.ref('friendRequests/' + friendId + '/' + playerId).once('value').then(requestSnapshot => {
+                        if (requestSnapshot.exists() && requestSnapshot.val().status === 'pending') {
+                            showNotification('Info', 'Friend request already sent', 'warning');
+                            return;
+                        }
+                        
+                        // Send friend request
+                        const requestRef = database.ref('friendRequests/' + friendId + '/' + playerId);
+                        requestRef.set({
+                            from: playerId,
+                            timestamp: Date.now(),
+                            status: 'pending'
+                        });
+                        
+                        showNotification('Success', 'Friend request sent to ' + friendId, 'success');
+                        elements.friendIdInput.value = '';
+                    });
+                });
+            });
+        }
+
+        // Accept friend request
+        function acceptFriendRequest(fromPlayerId) {
+            // Update the request status
+            database.ref('friendRequests/' + playerId + '/' + fromPlayerId).update({
+                status: 'accepted'
+            });
+            
+            // Add to friends list for both players
+            database.ref('friends/' + playerId + '/' + fromPlayerId).set({
+                since: Date.now()
+            });
+            
+            database.ref('friends/' + fromPlayerId + '/' + playerId).set({
+                since: Date.now()
+            });
+            
+            showNotification('Success', `You are now friends with ${fromPlayerId}`, 'success');
+        }
+
+        // Reject friend request
+        function rejectFriendRequest(fromPlayerId) {
+            // Update the request status
+            database.ref('friendRequests/' + playerId + '/' + fromPlayerId).update({
+                status: 'rejected'
+            });
+            
+            showNotification('Info', 'Friend request rejected', 'warning');
+        }
+
+        // Send duel request
+        function sendDuelRequest(friendId) {
+            // Check if friend is online
+            database.ref('players/' + friendId).once('value').then(snapshot => {
+                if (!snapshot.exists() || !snapshot.val().online) {
+                    showNotification('Error', 'Friend is offline', 'danger');
+                    return;
+                }
+                
+                // Check if already have a pending duel request
+                database.ref('duelRequests/' + friendId).orderByChild('from').equalTo(playerId).once('value').then(requestSnapshot => {
+                    let hasPendingRequest = false;
+                    
+                    if (requestSnapshot.exists()) {
+                        const requests = requestSnapshot.val();
+                        Object.keys(requests).forEach(requestId => {
+                            if (requests[requestId].status === 'pending') {
+                                hasPendingRequest = true;
+                            }
+                        });
+                    }
+                    
+                    if (hasPendingRequest) {
+                        showNotification('Info', 'Duel request already sent', 'warning');
+                        return;
+                    }
+                    
+                    // Send duel request
+                    const requestRef = database.ref('duelRequests/' + friendId).push();
+                    requestRef.set({
+                        from: playerId,
+                        timestamp: Date.now(),
+                        status: 'pending'
+                    });
+                    
+                    showNotification('Success', 'Duel request sent to ' + friendId, 'success');
+                });
+            });
+        }
+
+        // Accept duel request
+        function acceptDuelRequest(requestId, fromPlayerId) {
+            // Update the request status
+            database.ref('duelRequests/' + playerId + '/' + requestId).update({
+                status: 'accepted'
+            });
+            
+            // Create a new game
+            const gameRef = database.ref('games').push();
+            const gameId = gameRef.key;
+            
+            // Determine who is X and who is O (random)
+            const isPlayerX = Math.random() > 0.5;
+            
+            const gameData = {
+                playerX: isPlayerX ? fromPlayerId : playerId,
+                playerO: isPlayerX ? playerId : fromPlayerId,
+                playerXJoined: false,
+                playerOJoined: false,
+                board: ['', '', '', '', '', '', '', '', ''],
+                currentTurn: 'X', // X always starts
+                status: 'waiting',
+                createdAt: Date.now()
+            };
+            
+            gameRef.set(gameData).then(() => {
+                // Join the game
+                joinGame(gameId, gameData);
+            });
+        }
+
+        // Reject duel request
+        function rejectDuelRequest(requestId) {
+            // Update the request status
+            database.ref('duelRequests/' + playerId + '/' + requestId).update({
+                status: 'rejected'
+            });
+            
+            showNotification('Info', 'Duel request rejected', 'warning');
+        }
+
+        // Join a game
+        function joinGame(gameId, gameData) {
+            currentGameId = gameId;
+            
+            // Determine which player we are
+            if (gameData.playerX === playerId) {
+                currentPlayerSymbol = 'X';
+                database.ref('games/' + gameId + '/playerXJoined').set(true);
+            } else if (gameData.playerO === playerId) {
+                currentPlayerSymbol = 'O';
+                database.ref('games/' + gameId + '/playerOJoined').set(true);
+            }
+            
+            // Update game status if both players have joined
+            if ((gameData.playerX === playerId && gameData.playerOJoined) ||
+                (gameData.playerO === playerId && gameData.playerXJoined)) {
+                database.ref('games/' + gameId + '/status').set('playing');
+            }
+            
+            // Switch to game screen
+            switchScreen('game');
+            
+            // Set up game listeners
+            setupGameListeners(gameId);
+            
+            showNotification('Game Started', 'You are playing as ' + currentPlayerSymbol, 'success');
+        }
+
+        // Set up game listeners
+        function setupGameListeners(gameId) {
+            const gameRef = database.ref('games/' + gameId);
+            
+            gameRef.on('value', snapshot => {
+                if (!snapshot.exists()) {
+                    // Game was deleted
+                    showNotification('Game Over', 'The game has ended', 'warning');
+                    leaveGame();
+                    return;
+                }
+                
+                const game = snapshot.val();
+                updateGameUI(game);
+            });
+        }
+
+        // Update game UI
+        function updateGameUI(game) {
+            // Update game status
+            gameStatus = game.status;
+            
+            // Update turn indicator
+            if (game.status === 'playing') {
+                isMyTurn = (game.currentTurn === currentPlayerSymbol);
+                
+                elements.turnText.textContent = isMyTurn ? 
+                    `Your Turn (${currentPlayerSymbol})` : 
+                    `Opponent's Turn (${game.currentTurn})`;
+                    
+                // Update turn indicator color
+                const turnIndicator = document.querySelector('.turn-indicator');
+                turnIndicator.className = 'turn-indicator ' + (game.currentTurn === 'X' ? 'turn-x' : 'turn-o');
+                
+                elements.gameStatus.textContent = isMyTurn ? 
+                    'It\'s your turn. Make a move!' : 
+                    'Waiting for opponent...';
+            } else if (game.status === 'win') {
+                const winner = game.winner === playerId ? 'You' : 'Opponent';
+                elements.gameStatus.textContent = `${winner} won the game!`;
+                
+                // Show rematch button
+                elements.rematchBtn.style.display = 'inline-flex';
+            } else if (game.status === 'draw') {
+                elements.gameStatus.textContent = 'Game ended in a draw!';
+                
+                // Show rematch button
+                elements.rematchBtn.style.display = 'inline-flex';
+            } else if (game.status === 'aborted') {
+                elements.gameStatus.textContent = 'Game was aborted';
+            }
+            
+            // Update game board
+            elements.gameBoard.innerHTML = '';
+            
+            game.board.forEach((cellValue, index) => {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                
+                if (cellValue) {
+                    cell.classList.add(cellValue.toLowerCase());
+                    cell.textContent = cellValue;
+                    
+                    // Highlight winning cells
+                    if (game.winningCells && game.winningCells.includes(index)) {
+                        cell.classList.add('win');
+                    }
+                }
+                
+                // Add click handler for empty cells during player's turn
+                if (!cellValue && isMyTurn && game.status === 'playing') {
+                    cell.addEventListener('click', () => makeMove(index));
+                }
+                
+                elements.gameBoard.appendChild(cell);
+            });
+        }
+
+        // Make a move
+        function makeMove(cellIndex) {
+            if (!currentGameId || !isMyTurn || gameStatus !== 'playing') return;
+            
+            const gameRef = database.ref('games/' + currentGameId);
+            
+            // Check if the cell is empty
+            gameRef.once('value').then(snapshot => {
+                const game = snapshot.val();
+                
+                if (game.board[cellIndex] !== '') {
+                    showNotification('Invalid Move', 'Cell is already occupied', 'danger');
+                    return;
+                }
+                
+                // Update the board
+                const updates = {};
+                updates[`board/${cellIndex}`] = currentPlayerSymbol;
+                updates['currentTurn'] = currentPlayerSymbol === 'X' ? 'O' : 'X';
+                updates['lastMove'] = {
+                    player: playerId,
+                    position: cellIndex,
+                    timestamp: Date.now()
+                };
+                
+                gameRef.update(updates).then(() => {
+                    // Check for win or draw
+                    checkGameStatus();
+                });
+            });
+        }
+
+        // Check game status for win or draw
+        function checkGameStatus() {
+            const gameRef = database.ref('games/' + currentGameId);
+            
+            gameRef.once('value').then(snapshot => {
+                const game = snapshot.val();
+                const board = game.board;
+                
+                // Check for win
+                const winPatterns = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+                    [0, 4, 8], [2, 4, 6]             // diagonals
+                ];
+                
+                let winner = null;
+                let winningCells = null;
+                
+                for (const pattern of winPatterns) {
+                    const [a, b, c] = pattern;
+                    
+                    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                        winner = board[a] === 'X' ? game.playerX : game.playerO;
+                        winningCells = pattern;
+                        break;
+                    }
+                }
+                
+                if (winner) {
+                    // Update game status
+                    gameRef.update({
+                        status: 'win',
+                        winner: winner,
+                        winningCells: winningCells,
+                        endedAt: Date.now()
+                    });
+                    
+                    // Update player stats
+                    const isWinner = winner === playerId;
+                    updatePlayerStats(isWinner);
+                    
+                    return;
+                }
+                
+                // Check for draw
+                if (!board.includes('')) {
+                    // Update game status
+                    gameRef.update({
+                        status: 'draw',
+                        endedAt: Date.now()
+                    });
+                    
+                    // Update player stats
+                    updatePlayerStats(false);
+                }
+            });
+        }
+
+        // Leave the current game
+        function leaveGame() {
+            if (currentGameId) {
+                // Update game status to aborted
+                database.ref('games/' + currentGameId).update({
+                    status: 'aborted',
+                    endedAt: Date.now()
+                });
+                
+                // Remove game listener
+                database.ref('games/' + currentGameId).off();
+                
+                currentGameId = null;
+                currentPlayerSymbol = null;
+                isMyTurn = false;
+                gameStatus = 'waiting';
+            }
+            
+            // Switch to home screen
+            switchScreen('home');
+        }
+
+        // Request a rematch
+        function requestRematch() {
+            if (!currentGameId) return;
+            
+            // Get the current game to find opponent
+            database.ref('games/' + currentGameId).once('value').then(snapshot => {
+                const game = snapshot.val();
+                const opponentId = game.playerX === playerId ? game.playerO : game.playerX;
+                
+                // Send a new duel request
+                sendDuelRequest(opponentId);
+                
+                // Leave current game
+                leaveGame();
+            });
+        }
+
+        // Switch between screens
+        function switchScreen(screenName) {
+            // Hide all screens
+            elements.homeScreen.classList.remove('active');
+            elements.gameScreen.classList.remove('active');
+            
+            // Show the requested screen
+            if (screenName === 'home') {
+                elements.homeScreen.classList.add('active');
+                elements.rematchBtn.style.display = 'none';
+            } else if (screenName === 'game') {
+                elements.gameScreen.classList.add('active');
+            }
+        }
+
+        // Show notification
+        function showNotification(title, message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <div class="notification-title">${title}</div>
+                    <div class="notification-message">${message}</div>
+                </div>
+                <button class="notification-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            elements.notificationContainer.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(100%)';
+                    
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }
+            }, 5000);
+            
+            // Add close button functionality
+            const closeBtn = notification.querySelector('.notification-close');
+            closeBtn.addEventListener('click', () => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            });
+        }
+
+        // Find a random game
+        function findRandomGame() {
+            showNotification('Searching', 'Looking for an available opponent...', 'info');
+            
+            // Check for waiting games
+            database.ref('games').orderByChild('status').equalTo('waiting').once('value').then(snapshot => {
+                if (snapshot.exists()) {
+                    const games = snapshot.val();
+                    
+                    // Find a game that's waiting for an opponent
+                    for (const gameId in games) {
+                        const game = games[gameId];
+                        
+                        // Check if the game has an empty slot
+                        if (!game.playerX || !game.playerO) {
+                            // Join the game
+                            joinGame(gameId, game);
+                            return;
+                        }
+                    }
+                }
+                
+                // No waiting games found, create a new one
+                const gameRef = database.ref('games').push();
+                const gameId = gameRef.key;
+                
+                // Create a game waiting for an opponent
+                const gameData = {
+                    playerX: playerId,
+                    playerO: '',
+                    playerXJoined: true,
+                    playerOJoined: false,
+                    board: ['', '', '', '', '', '', '', '', ''],
+                    currentTurn: 'X',
+                    status: 'waiting',
+                    createdAt: Date.now()
+                };
+                
+                gameRef.set(gameData).then(() => {
+                    currentGameId = gameId;
+                    currentPlayerSymbol = 'X';
+                    
+                    // Switch to game screen
+                    switchScreen('game');
+                    
+                    // Set up game listeners
+                    setupGameListeners(gameId);
+                    
+                    showNotification('Waiting', 'Waiting for an opponent to join...', 'warning');
+                });
+            });
+        }
+
+        // Initialize the app
+        function init() {
+            // Initialize player ID
+            initializePlayerId();
+            
+            // Set up event listeners
+            elements.copyIdBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(playerId).then(() => {
+                    showNotification('Copied!', 'Player ID copied to clipboard', 'success');
+                });
+            });
+            
+            elements.sendFriendRequestBtn.addEventListener('click', sendFriendRequest);
+            
+            elements.friendIdInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendFriendRequest();
+                }
+            });
+            
+            elements.leaveGameBtn.addEventListener('click', leaveGame);
+            
+            elements.rematchBtn.addEventListener('click', requestRematch);
+            
+            elements.homeBtn.addEventListener('click', () => {
+                leaveGame();
+                switchScreen('home');
+            });
+            
+            elements.findRandomGameBtn.addEventListener('click', findRandomGame);
+            
+            elements.viewFriendsBtn.addEventListener('click', () => {
+                // Scroll to friends section
+                document.querySelector('.sidebar').scrollTo({
+                    top: document.querySelector('#friends-list').offsetTop - 100,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // Handle page visibility change (for online status)
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    setOnlineStatus(false);
+                } else {
+                    setOnlineStatus(true);
+                }
+            });
+            
+            // Handle page unload
+            window.addEventListener('beforeunload', () => {
+                setOnlineStatus(false);
+                
+                if (currentGameId) {
+                    // Mark game as aborted
+                    database.ref('games/' + currentGameId).update({
+                        status: 'aborted',
+                        endedAt: Date.now()
+                    });
+                }
+            });
+        }
+
+        // Start the app when the page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
